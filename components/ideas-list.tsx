@@ -18,6 +18,7 @@ import {
   AlertDialogTrigger,
 } from '@/components/ui/alert-dialog';
 import { Lightbulb, Search, Filter, Pencil, Trash2, ChevronDown, ChevronUp, FlaskConical, CheckCircle2, XCircle, Archive } from 'lucide-react';
+import { ScreenshotViewer } from '@/components/screenshot-viewer';
 import IdeaForm from './idea-form';
 
 const STATUS_CONFIG: Record<IdeaStatus, { label: string; color: string; icon: typeof Lightbulb }> = {
@@ -284,7 +285,7 @@ export default function IdeasList() {
                         {idea.screenshot && (
                           <div>
                             <p className="text-xs font-semibold text-muted-foreground mb-1">Screenshot</p>
-                            <img src={idea.screenshot} alt="Idea screenshot" className="rounded-lg border border-border max-h-64 object-contain" />
+                            <ScreenshotViewer imageUrl={idea.screenshot} title={`${idea.name} - Screenshot`} />
                           </div>
                         )}
 

@@ -10,6 +10,7 @@ interface IdeasContextType {
   updateIdea: (id: string, idea: TradeIdea) => void;
   exportJSON: () => void;
   exportCSV: () => void;
+  importJSON: (file: Blob) => Promise<void>;
   error: string | null;
   clearError: () => void;
 }
@@ -166,8 +167,48 @@ export function IdeasProvider({ children }: { children: React.ReactNode }) {
 
   const clearError = () => setError(null);
 
+  const importJSON = async (file: Blob) => {
+    try {
+      const text = await file.text();
+      const parsed = JSON.parse(text);
+
+      if (!Array.isArray(parsed)) {
+        throw new Error('Invalid file format: expected an array of ideas');
+      }
+
+      // Validate each idea has required fields
+      const validIdeas = parsed.every(idea => {
+        return typeof idea === 'object' && 
+               idea.id && 
+               idea.name && 
+               idea.createdAt && 
+               idea.updatedAt;
+      });
+
+      if (!validIdeas) {
+        throw new Error('Invalid idea data: missing required fields');
+      }
+
+      // Merge with existing ideas, avoiding duplicates by id
+      setIdeas(prev => {
+        const existingIds = new Set(prev.map(i => i.id));
+        const newIdeas = parsed.filter((idea: TradeIdea) => !existingIds.has(idea.id));
+        return [...prev, ...newIdeas];
+      });
+
+      setError(null);
+    } catch (err) {
+      const message = err instanceof Error ? err.message : 'Failed to import ideas';
+      console.error('[v0] Ideas import error:', message);
+      setError(message);
+      throw err;
+    }
+  };
+
+  const clearErrorFn = () => setError(null);
+
   return (
-    <IdeasContext.Provider value={{ ideas, addIdea, deleteIdea, updateIdea, exportJSON, exportCSV, error, clearError }}>
+    <IdeasContext.Provider value={{ ideas, addIdea, deleteIdea, updateIdea, exportJSON, exportCSV, importJSON, error, clearError: clearErrorFn }}>
       {children}
     </IdeasContext.Provider>
   );

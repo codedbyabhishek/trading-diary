@@ -10,6 +10,7 @@ import { Button } from '@/components/ui/button';
 import { AlertCircle, Plus, Loader2, Upload, X } from 'lucide-react';
 import { TradeFormData, Currency } from '@/lib/types';
 import { calculatePnL, calculateRFactor, CURRENCY_SYMBOLS, getTradeOutcome } from '@/lib/trade-utils';
+import { ScreenshotViewer } from './screenshot-viewer';
 
 interface TradeFormProps {
   onSuccess?: () => void;
@@ -674,7 +675,7 @@ export default function TradeForm({ onSuccess }: TradeFormProps) {
                 <label className="block text-xs sm:text-sm font-medium text-foreground mb-2">Before Trade</label>
                 {beforeScreenshot ? (
                   <div className="relative inline-block w-full">
-                    <img src={beforeScreenshot || "/placeholder.svg"} alt="Before trade" className="w-full rounded-lg border border-border max-h-48 sm:max-h-64 object-cover" />
+                    <ScreenshotViewer imageUrl={beforeScreenshot} title="Before Trade Screenshot" />
                     <button
                       type="button"
                       onClick={clearBeforeScreenshot}
@@ -705,7 +706,7 @@ export default function TradeForm({ onSuccess }: TradeFormProps) {
                 <label className="block text-xs sm:text-sm font-medium text-foreground mb-2">After Exit</label>
                 {afterScreenshot ? (
                   <div className="relative inline-block w-full">
-                    <img src={afterScreenshot || "/placeholder.svg"} alt="After exit" className="w-full rounded-lg border border-border max-h-48 sm:max-h-64 object-cover" />
+                    <ScreenshotViewer imageUrl={afterScreenshot} title="After Exit Screenshot" />
                     <button
                       type="button"
                       onClick={clearAfterScreenshot}

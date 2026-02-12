@@ -5,6 +5,7 @@ import { useIdeas } from '@/lib/ideas-context';
 import { TradeIdea, IdeaStatus } from '@/lib/types';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
+import { ScreenshotViewer } from '@/components/screenshot-viewer';
 import { Upload, X } from 'lucide-react';
 
 interface IdeaFormProps {
@@ -380,7 +381,14 @@ export default function IdeaForm({ onSuccess, editIdea }: IdeaFormProps) {
               <label className="block text-sm font-medium text-foreground mb-2">Screenshot</label>
               {screenshot ? (
                 <div className="relative inline-block w-full">
-                  <img src={screenshot} alt="Idea screenshot" className="w-full rounded-lg border border-border max-h-64 object-cover" />
+                  <ScreenshotViewer 
+                    imageUrl={screenshot} 
+                    title={`${formData.name || 'Idea'} - Screenshot`}
+                  >
+                    <div className="cursor-pointer hover:opacity-80 transition-opacity rounded-lg border border-border overflow-hidden w-full">
+                      <img src={screenshot} alt="Idea screenshot" className="w-full rounded-lg border border-border max-h-64 object-cover" />
+                    </div>
+                  </ScreenshotViewer>
                   <button
                     type="button"
                     onClick={() => setScreenshot(null)}

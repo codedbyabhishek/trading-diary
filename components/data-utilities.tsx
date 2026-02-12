@@ -13,8 +13,9 @@ import { fetchTradesFromGithub, parseGithubRepoUrl } from '@/lib/github-service'
 
 export default function DataUtilities() {
   const { trades, exportJSON, exportCSV, importJSON } = useTrades();
-  const { ideas, exportJSON: exportIdeasJSON, exportCSV: exportIdeasCSV } = useIdeas();
+  const { ideas, exportJSON: exportIdeasJSON, exportCSV: exportIdeasCSV, importJSON: importIdeasJSON } = useIdeas();
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const ideaFileInputRef = useRef<HTMLInputElement>(null);
   const [githubRepoUrl, setGithubRepoUrl] = useState('');
   const [isGithubLoading, setIsGithubLoading] = useState(false);
 
@@ -31,6 +32,22 @@ export default function DataUtilities() {
 
     if (fileInputRef.current) {
       fileInputRef.current.value = '';
+    }
+  };
+
+  const handleImportIdeas = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    try {
+      await importIdeasJSON(file);
+      alert('Ideas imported successfully!');
+    } catch (error) {
+      alert(`Failed to import ideas: ${error}`);
+    }
+
+    if (ideaFileInputRef.current) {
+      ideaFileInputRef.current.value = '';
     }
   };
 
@@ -260,6 +277,16 @@ export default function DataUtilities() {
                 💡 Tip: Make sure the repository has been synced using the "Sync to GitHub" button and contains a trades JSON file.
               </p>
             </div>
+          </div>
+
+          <div className="border-t border-border pt-4">
+            <p className="text-sm font-medium text-foreground mb-3">Import Trade Ideas from File</p>
+            <p className="text-xs text-muted-foreground mb-4">Select a previously exported ideas JSON file to import. Imported ideas will be added to your existing ideas.</p>
+            <Button onClick={() => ideaFileInputRef.current?.click()} className="bg-blue-600 hover:bg-blue-700">
+              <Upload className="w-4 h-4 mr-2" />
+              Import Ideas
+            </Button>
+            <input ref={ideaFileInputRef} type="file" accept=".json" onChange={handleImportIdeas} className="hidden" />
           </div>
         </CardContent>
       </Card>

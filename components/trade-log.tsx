@@ -7,6 +7,7 @@ import { Button } from '@/components/ui/button';
 import { Trade } from '@/lib/types';
 import { Trash2, Eye, Filter } from 'lucide-react';
 import { CURRENCY_SYMBOLS, getTradeOutcome } from '@/lib/trade-utils';
+import { ScreenshotViewer } from './screenshot-viewer';
 
 export default function TradeLog() {
   const { trades, deleteTrade } = useTrades();
@@ -382,13 +383,13 @@ export default function TradeLog() {
                     {selectedTrade.beforeTradeScreenshot && (
                       <div>
                         <p className="text-xs text-muted-foreground mb-2">Before Trade</p>
-                        <img src={selectedTrade.beforeTradeScreenshot || "/placeholder.svg"} alt="Before trade" className="w-full rounded-lg border border-border max-h-64 object-contain" />
+                        <ScreenshotViewer imageUrl={selectedTrade.beforeTradeScreenshot} title="Before Trade Screenshot" />
                       </div>
                     )}
                     {selectedTrade.afterExitScreenshot && (
                       <div>
                         <p className="text-xs text-muted-foreground mb-2">After Exit</p>
-                        <img src={selectedTrade.afterExitScreenshot || "/placeholder.svg"} alt="After exit" className="w-full rounded-lg border border-border max-h-64 object-contain" />
+                        <ScreenshotViewer imageUrl={selectedTrade.afterExitScreenshot} title="After Exit Screenshot" />
                       </div>
                     )}
                   </div>
