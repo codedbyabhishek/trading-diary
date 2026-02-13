@@ -1,23 +1,29 @@
 /**
  * IndexedDB Service
  * Handles all database operations for the trading journal
- * Supports trades, ideas, and settings with 500MB+ storage capacity
+ * Supports trades, ideas, settings, goals, filters, and templates with 500MB+ storage capacity
  */
 
 'use client';
 
 const DB_NAME = 'trading-journal-db';
-const DB_VERSION = 1;
+const DB_VERSION = 2;
 
 // Store names
 const TRADES_STORE = 'trades';
 const IDEAS_STORE = 'ideas';
 const SETTINGS_STORE = 'settings';
+const GOALS_STORE = 'trading-journal-goals';
+const FILTERS_STORE = 'trading-journal-filters';
+const TEMPLATES_STORE = 'trading-journal-templates';
 
 interface DBStores {
   trades: 'trades';
   ideas: 'ideas';
   settings: 'settings';
+  goals: 'trading-journal-goals';
+  filters: 'trading-journal-filters';
+  templates: 'trading-journal-templates';
 }
 
 /**
@@ -67,6 +73,24 @@ export async function initializeDB(): Promise<IDBDatabase> {
         if (!db.objectStoreNames.contains(SETTINGS_STORE)) {
           db.createObjectStore(SETTINGS_STORE, { keyPath: 'key' });
           console.log('[IndexedDB] Created settings store');
+        }
+
+        // Create goals store
+        if (!db.objectStoreNames.contains(GOALS_STORE)) {
+          db.createObjectStore(GOALS_STORE, { keyPath: 'id' });
+          console.log('[IndexedDB] Created goals store');
+        }
+
+        // Create filters store
+        if (!db.objectStoreNames.contains(FILTERS_STORE)) {
+          db.createObjectStore(FILTERS_STORE, { keyPath: 'id' });
+          console.log('[IndexedDB] Created filters store');
+        }
+
+        // Create templates store
+        if (!db.objectStoreNames.contains(TEMPLATES_STORE)) {
+          db.createObjectStore(TEMPLATES_STORE, { keyPath: 'id' });
+          console.log('[IndexedDB] Created templates store');
         }
       };
     } catch (error) {
@@ -326,6 +350,9 @@ export const STORE_NAMES = {
   TRADES: TRADES_STORE,
   IDEAS: IDEAS_STORE,
   SETTINGS: SETTINGS_STORE,
+  GOALS: GOALS_STORE,
+  FILTERS: FILTERS_STORE,
+  TEMPLATES: TEMPLATES_STORE,
 };
 
 /**

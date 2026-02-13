@@ -168,3 +168,52 @@ export interface TradeIdea {
   backtestSampleSize?: number;
   tags?: string[];
 }
+
+// ============================================
+// Trading Goals & Tracking
+// ============================================
+
+export type GoalType = 'win_rate' | 'profit_target' | 'trade_count' | 'risk_management' | 'consistency';
+
+export interface TradingGoal {
+  id: string;
+  type: GoalType;
+  title: string;
+  description: string;
+  targetValue: number;
+  currentValue: number;
+  unit: string; // '%', 'Rs', '₹', 'trades', etc.
+  startDate: string;
+  endDate: string;
+  status: 'active' | 'completed' | 'failed' | 'abandoned';
+  progress: number; // 0-100
+  createdAt: string;
+  updatedAt: string;
+}
+
+// ============================================
+// Search & Filtering
+// ============================================
+
+export interface TradeFilter {
+  id: string;
+  name: string;
+  dateRange?: {
+    start: string;
+    end: string;
+  };
+  symbols?: string[];
+  setupNames?: string[];
+  tradeTypes?: ('Intraday' | 'Swing' | 'Scalping' | 'Positional')[];
+  currencyFilter?: Currency[];
+  minPnL?: number;
+  maxPnL?: number;
+  minRFactor?: number;
+  maxRFactor?: number;
+  outcomeFilter?: TradeOutcome[];
+  ruleFollowedOnly?: boolean;
+  emotionTags?: EmotionTag[];
+  sessions?: MarketSession[];
+  createdAt: string;
+  updatedAt: string;
+}

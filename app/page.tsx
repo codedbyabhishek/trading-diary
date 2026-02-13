@@ -4,6 +4,9 @@ import { useState } from 'react';
 import { TradeProvider } from '@/lib/trade-context';
 import { SettingsProvider } from '@/lib/settings-context';
 import { IdeasProvider } from '@/lib/ideas-context';
+import { GoalsProvider } from '@/lib/goals-context';
+import { FiltersProvider } from '@/lib/filters-context';
+import { TemplatesProvider } from '@/lib/templates-context';
 import { HydrationBoundary } from '@/components/hydration-boundary';
 import Sidebar from '@/components/sidebar';
 import MobileNav from '@/components/mobile-nav';
@@ -16,8 +19,13 @@ import WeeklyReview from '@/components/weekly-review';
 import DataUtilities from '@/components/data-utilities';
 import IdeasList from '@/components/ideas-list';
 import IdeaForm from '@/components/idea-form';
+import AdvancedAnalytics from '@/components/advanced-analytics';
+import GoalsTracker from '@/components/goals-tracker';
+import TradeSearch from '@/components/trade-search';
+import ReportsGenerator from '@/components/reports-generator';
+import EmotionAnalyzer from '@/components/emotion-analyzer';
 
-type Page = 'dashboard' | 'add-trade' | 'log' | 'analytics' | 'profit-loss' | 'weekly-review' | 'data-utilities' | 'ideas' | 'add-idea';
+type Page = 'dashboard' | 'add-trade' | 'log' | 'analytics' | 'profit-loss' | 'weekly-review' | 'data-utilities' | 'ideas' | 'add-idea' | 'advanced-analytics' | 'goals' | 'search' | 'reports' | 'emotion-analyzer';
 
 function AppContent() {
   const [currentPage, setCurrentPage] = useState<Page>('dashboard');
@@ -42,6 +50,16 @@ function AppContent() {
         return <IdeasList />;
       case 'add-idea':
         return <IdeaForm onSuccess={() => setCurrentPage('ideas')} />;
+      case 'advanced-analytics':
+        return <AdvancedAnalytics />;
+      case 'goals':
+        return <GoalsTracker />;
+      case 'search':
+        return <TradeSearch />;
+      case 'reports':
+        return <ReportsGenerator />;
+      case 'emotion-analyzer':
+        return <EmotionAnalyzer />;
       default:
         return <Dashboard />;
     }
@@ -72,7 +90,13 @@ export default function Home() {
       <SettingsProvider>
         <TradeProvider>
           <IdeasProvider>
-            <AppContent />
+            <GoalsProvider>
+              <FiltersProvider>
+                <TemplatesProvider>
+                  <AppContent />
+                </TemplatesProvider>
+              </FiltersProvider>
+            </GoalsProvider>
           </IdeasProvider>
         </TradeProvider>
       </SettingsProvider>

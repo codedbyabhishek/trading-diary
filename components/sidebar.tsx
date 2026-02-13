@@ -1,12 +1,12 @@
 'use client';
 
-import { BarChart3, PlusCircle, Table, LineChart, Settings, Calendar, TrendingUp, Lightbulb } from 'lucide-react';
+import { BarChart3, PlusCircle, Table, LineChart, Settings, Calendar, TrendingUp, Lightbulb, Target, Search, Zap, FileText, Brain } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { ThemeToggle } from '@/components/theme-toggle';
 
 interface SidebarProps {
   currentPage: string;
-  onPageChange: (page: 'dashboard' | 'add-trade' | 'log' | 'analytics' | 'profit-loss' | 'weekly-review' | 'data-utilities' | 'ideas' | 'add-idea') => void;
+  onPageChange: (page: 'dashboard' | 'add-trade' | 'log' | 'analytics' | 'profit-loss' | 'weekly-review' | 'data-utilities' | 'ideas' | 'add-idea' | 'advanced-analytics' | 'goals' | 'search' | 'reports' | 'emotion-analyzer') => void;
 }
 
 export default function Sidebar({ currentPage, onPageChange }: SidebarProps) {
@@ -15,8 +15,13 @@ export default function Sidebar({ currentPage, onPageChange }: SidebarProps) {
     { id: 'add-trade', label: 'Add Trade', icon: PlusCircle },
     { id: 'log', label: 'Trade Log', icon: Table },
     { id: 'analytics', label: 'Analytics', icon: LineChart },
+    { id: 'advanced-analytics', label: 'Advanced Analytics', icon: Zap },
     { id: 'profit-loss', label: 'P&L Summary', icon: TrendingUp },
     { id: 'weekly-review', label: 'Weekly Review', icon: Calendar },
+    { id: 'reports', label: 'Reports', icon: FileText },
+    { id: 'emotion-analyzer', label: 'Emotion Analysis', icon: Brain },
+    { id: 'search', label: 'Search & Filter', icon: Search },
+    { id: 'goals', label: 'Trading Goals', icon: Target },
     { id: 'ideas', label: 'Trade Ideas', icon: Lightbulb },
     { id: 'add-idea', label: 'Add Idea', icon: PlusCircle },
     { id: 'data-utilities', label: 'Data & Settings', icon: Settings },
