@@ -3,9 +3,9 @@
 import React, { createContext, useContext, useEffect, useState } from 'react';
 
 /**
- * Theme type - supports light, dark, and system preference
+ * Theme type - supports light, dark, system preference, and cyberpunk
  */
-export type Theme = 'light' | 'dark' | 'system';
+export type Theme = 'light' | 'dark' | 'system' | 'cyberpunk';
 
 /**
  * Theme context type definition
@@ -83,14 +83,14 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
 
   /**
    * Apply theme to DOM and trigger visual update
-   * @param resolved - Resolved theme to apply ('light' or 'dark')
+   * @param resolved - Resolved theme to apply ('light', 'dark', or 'cyberpunk')
    * @param preference - User's theme preference
    */
-  const applyTheme = (resolved: 'light' | 'dark', preference: Theme) => {
+  const applyTheme = (resolved: 'light' | 'dark' | 'cyberpunk', preference: Theme) => {
     const html = document.documentElement;
 
     // Remove all theme classes
-    html.classList.remove('light', 'dark');
+    html.classList.remove('light', 'dark', 'cyberpunk');
 
     // Add resolved theme class
     html.classList.add(resolved);
@@ -101,10 +101,12 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
     // Update meta theme-color for mobile browsers
     const metaThemeColor = document.querySelector('meta[name="theme-color"]');
     if (metaThemeColor) {
-      metaThemeColor.setAttribute(
-        'content',
-        resolved === 'dark' ? '#161616' : '#f8f8f8'
-      );
+      const colorMap = {
+        'light': '#f8f8f8',
+        'dark': '#161616',
+        'cyberpunk': '#0a0e27'
+      };
+      metaThemeColor.setAttribute('content', colorMap[resolved]);
     }
 
     // Emit custom event for components that need to listen
@@ -117,18 +119,18 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
 
   /**
    * Update theme and persist to localStorage
-   * @param newTheme - Theme to set ('light', 'dark', or 'system')
+   * @param newTheme - Theme to set ('light', 'dark', 'cyberpunk', or 'system')
    */
   const setTheme = (newTheme: Theme) => {
     setThemeState(newTheme);
     localStorage.setItem('theme-preference', newTheme);
 
     // Resolve and apply the new theme
-    const resolved: 'light' | 'dark' = newTheme === 'system'
+    const resolved: 'light' | 'dark' | 'cyberpunk' = newTheme === 'system'
       ? window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light'
-      : newTheme;
+      : (newTheme as 'light' | 'dark' | 'cyberpunk');
 
-    setResolvedTheme(resolved);
+    setResolvedTheme(resolved === 'cyberpunk' ? 'dark' : resolved);
     applyTheme(resolved, newTheme);
   };
 

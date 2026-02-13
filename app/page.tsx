@@ -66,13 +66,13 @@ function AppContent() {
   };
 
   return (
-    <div className="flex h-dvh flex-col md:flex-row bg-background">
+    <div className="flex h-dvh flex-col md:flex-row bg-background overflow-hidden">
       {/* Desktop Sidebar */}
       <div className="hidden md:block">
         <Sidebar currentPage={currentPage} onPageChange={setCurrentPage} />
       </div>
       
-      <main className="flex-1 overflow-auto pb-20 md:pb-0">
+      <main className="flex-1 overflow-auto pb-16 md:pb-0">
         {renderPage()}
       </main>
 

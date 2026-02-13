@@ -78,6 +78,44 @@
   color-scheme: dark;
 }
 
+/* Cyberpunk theme - Matrix/Hacker style */
+.cyberpunk, [data-theme="cyberpunk"] {
+  --background: #0a0e27;
+  --foreground: #00ff41;
+  --card: #0f1829;
+  --card-foreground: #00ff41;
+  --popover: #0f1829;
+  --popover-foreground: #00ff41;
+  --primary: #00ff41;
+  --primary-foreground: #0a0e27;
+  --secondary: #ff006e;
+  --secondary-foreground: #0a0e27;
+  --muted: #1a1f3a;
+  --muted-foreground: #00b82c;
+  --accent: #00f0ff;
+  --accent-foreground: #0a0e27;
+  --destructive: #ff0040;
+  --destructive-foreground: #0a0e27;
+  --border: #1a2d4d;
+  --input: #061019;
+  --ring: #00ff41;
+  --chart-1: #00ff41;
+  --chart-2: #00f0ff;
+  --chart-3: #ff006e;
+  --chart-4: #00b82c;
+  --chart-5: #ffd700;
+  --radius: 0.625rem;
+  --sidebar: #0f1829;
+  --sidebar-foreground: #00ff41;
+  --sidebar-primary: #00ff41;
+  --sidebar-primary-foreground: #0a0e27;
+  --sidebar-accent: #1a2d4d;
+  --sidebar-accent-foreground: #00f0ff;
+  --sidebar-border: #1a2d4d;
+  --sidebar-ring: #00ff41;
+  color-scheme: dark;
+}
+
 @theme inline {
   --font-sans: 'Geist', 'Geist Fallback';
   --font-mono: 'Geist Mono', 'Geist Mono Fallback';
@@ -120,9 +158,13 @@
 }
 
 @layer base {
-  /* HTML - Ensure scrollbar always visible to prevent layout shift */
+  /* HTML & Body - Prevent double scrollbars */
+  html, body {
+    height: 100%;
+    overflow: hidden;
+  }
+
   html {
-    overflow-y: scroll;
     /* Smooth theme transitions without flickering */
     transition: background-color 0.3s ease, color 0.3s ease;
   }
@@ -192,4 +234,79 @@
     background-color: var(--primary);
     color: var(--primary-foreground);
   }
+}
+
+/* Cyberpunk theme enhancements */
+.cyberpunk, [data-theme="cyberpunk"] {
+  /* Add subtle grid background pattern */
+  background-image:
+    linear-gradient(0deg, transparent 24%, rgba(0, 255, 65, 0.03) 25%, rgba(0, 255, 65, 0.03) 26%, transparent 27%, transparent 74%, rgba(0, 255, 65, 0.03) 75%, rgba(0, 255, 65, 0.03) 76%, transparent 77%, transparent),
+    linear-gradient(90deg, transparent 24%, rgba(0, 255, 65, 0.03) 25%, rgba(0, 255, 65, 0.03) 26%, transparent 27%, transparent 74%, rgba(0, 255, 65, 0.03) 75%, rgba(0, 255, 65, 0.03) 76%, transparent 77%, transparent);
+  background-size: 50px 50px;
+}
+
+.cyberpunk a {
+  color: var(--primary);
+  text-shadow: 0 0 8px rgba(0, 255, 65, 0.4);
+}
+
+.cyberpunk a:hover {
+  text-shadow: 0 0 16px rgba(0, 255, 65, 0.8);
+}
+
+.cyberpunk button:focus-visible,
+.cyberpunk input:focus-visible,
+.cyberpunk select:focus-visible,
+.cyberpunk textarea:focus-visible {
+  box-shadow: 0 0 12px rgba(0, 255, 65, 0.6);
+}
+
+/* Glowing effect for primary colored elements */
+.cyberpunk [class*="primary"] {
+  text-shadow: 0 0 10px rgba(0, 255, 65, 0.5);
+}
+
+/* Card styling for cyberpunk */
+.cyberpunk .card {
+  border: 1px solid rgba(0, 255, 65, 0.2);
+  box-shadow: inset 0 0 20px rgba(0, 255, 65, 0.05);
+}
+
+.cyberpunk .card:hover {
+  box-shadow: inset 0 0 20px rgba(0, 255, 65, 0.1), 0 0 20px rgba(0, 255, 65, 0.1);
+}
+
+/* Scrollbar styling - Thin and elegant */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background-color: var(--muted-foreground);
+  border-radius: 3px;
+  border: 2px solid transparent;
+  background-clip: content-box;
+  transition: background-color 0.2s ease;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background-color: var(--foreground);
+  background-clip: content-box;
+}
+
+/* Cyberpunk scrollbar with glow */
+.cyberpunk::-webkit-scrollbar-thumb {
+  background-color: rgba(0, 255, 65, 0.6);
+  background-clip: content-box;
+  box-shadow: inset 0 0 6px rgba(0, 255, 65, 0.4);
+}
+
+.cyberpunk::-webkit-scrollbar-thumb:hover {
+  background-color: rgba(0, 255, 65, 1);
+  box-shadow: 0 0 8px rgba(0, 255, 65, 0.8);
 }

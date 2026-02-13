@@ -28,13 +28,13 @@ export default function Sidebar({ currentPage, onPageChange }: SidebarProps) {
   ];
 
   return (
-    <aside className="w-64 min-h-screen border-r border-border bg-sidebar flex flex-col overflow-y-auto">
-      <div className="p-6 sticky top-0 bg-sidebar border-b border-sidebar-border">
+    <aside className="w-64 h-screen border-r border-border bg-sidebar flex flex-col overflow-hidden">
+      <div className="p-6 sticky top-0 bg-sidebar border-b border-sidebar-border flex-shrink-0">
         <h1 className="text-2xl font-bold text-sidebar-foreground">Trading Journal</h1>
         <p className="text-sm text-muted-foreground mt-1">Track & Analyze Trades</p>
       </div>
 
-      <nav className="flex-1 space-y-2 px-4 py-4">
+      <nav className="flex-1 space-y-2 px-4 py-4 overflow-y-auto">
         {menuItems.map((item) => {
           const Icon = item.icon;
           const isActive = currentPage === item.id;
@@ -56,7 +56,7 @@ export default function Sidebar({ currentPage, onPageChange }: SidebarProps) {
         })}
       </nav>
 
-      <div className="p-4 mt-auto border-t border-sidebar-border space-y-4">
+      <div className="p-4 border-t border-sidebar-border space-y-4 flex-shrink-0">
         <div className="space-y-2">
           <p className="text-xs text-sidebar-foreground font-semibold px-2">Theme</p>
           <div className="px-2">
