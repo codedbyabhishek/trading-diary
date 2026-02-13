@@ -2,6 +2,7 @@
 
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { Currency } from './types';
+import { getFromDB, putToDB, migrateFromLocalStorage, STORE_NAMES } from './db-service';
 
 /**
  * Settings Context Type
@@ -16,41 +17,54 @@ export const SettingsContext = createContext<SettingsContextType | undefined>(un
 
 /**
  * SettingsProvider - Context provider for user settings
- * Persists base currency preference to localStorage
+ * Persists base currency preference to IndexedDB
  */
 export function SettingsProvider({ children }: { children: React.ReactNode }) {
   const [baseCurrency, setBaseCurrencyState] = useState<Currency>('INR');
 
   /**
-   * Effect: Load base currency preference from localStorage on mount
+   * Effect: Load settings from IndexedDB on mount
+   * Migrates from localStorage if this is the first load
    */
   useEffect(() => {
-    try {
-      const saved = localStorage.getItem('trading-journal-settings');
-      if (saved) {
-        const parsed = JSON.parse(saved);
-        if (parsed.baseCurrency) {
-          setBaseCurrencyState(parsed.baseCurrency);
+    const initializeSettings = async () => {
+      try {
+        // Migrate from localStorage (one-time operation)
+        const wasMigrated = await migrateFromLocalStorage(
+          'trading-journal-settings',
+          STORE_NAMES.SETTINGS,
+          (data) => ({ key: 'preferences', ...data })
+        );
+
+        if (wasMigrated) {
+          console.log('[IndexedDB] Settings migrated from localStorage');
+          localStorage.removeItem('trading-journal-settings');
         }
+
+        // Load settings from IndexedDB
+        const savedSettings = await getFromDB(STORE_NAMES.SETTINGS, 'preferences');
+        if (savedSettings && (savedSettings as any).baseCurrency) {
+          setBaseCurrencyState((savedSettings as any).baseCurrency);
+        }
+      } catch (err) {
+        console.error('[v0] Failed to load settings:', err);
       }
-    } catch (err) {
-      console.error('[v0] Settings load error:', err);
-    }
+    };
+
+    initializeSettings();
   }, []);
 
   /**
-   * Update base currency and persist to localStorage
+   * Update base currency and persist to IndexedDB
    */
   const setBaseCurrency = (currency: Currency) => {
     setBaseCurrencyState(currency);
-    try {
-      const current = localStorage.getItem('trading-journal-settings');
-      const settings = current ? JSON.parse(current) : {};
-      settings.baseCurrency = currency;
-      localStorage.setItem('trading-journal-settings', JSON.stringify(settings));
-    } catch (err) {
-      console.error('[v0] Settings save error:', err);
-    }
+    putToDB(STORE_NAMES.SETTINGS, {
+      key: 'preferences',
+      baseCurrency: currency,
+    }).catch(err => {
+      console.error('[v0] Failed to save settings:', err);
+    });
   };
 
   return (

@@ -2,6 +2,14 @@
 
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { TradeIdea } from './types';
+import {
+  getAllFromDB,
+  putToDB,
+  deleteFromDB,
+  migrateFromLocalStorage,
+  getDBSize,
+  STORE_NAMES,
+} from './db-service';
 
 interface IdeasContextType {
   ideas: TradeIdea[];
@@ -17,43 +25,73 @@ interface IdeasContextType {
 
 export const IdeasContext = createContext<IdeasContextType | undefined>(undefined);
 
-const STORAGE_KEY = 'trading-journal-ideas';
-
+/**
+ * IdeasProvider - Context provider for trade ideas management
+ * Handles IndexedDB persistence with 500MB+ capacity
+ */
 export function IdeasProvider({ children }: { children: React.ReactNode }) {
   const [ideas, setIdeas] = useState<TradeIdea[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
+  /**
+   * Effect: Initialize ideas from IndexedDB on mount
+   * Migrates from localStorage if this is the first load
+   */
   useEffect(() => {
-    try {
-      const saved = localStorage.getItem(STORAGE_KEY);
-      if (saved) {
-        const parsed = JSON.parse(saved);
-        if (!Array.isArray(parsed)) {
-          throw new Error('Invalid stored ideas data');
+    const initializeIdeas = async () => {
+      try {
+        console.log('[IdeasContext] Starting initialization...');
+        
+        // Migrate from localStorage (one-time operation)
+        const wasMigrated = await migrateFromLocalStorage(
+          'trading-journal-ideas',
+          STORE_NAMES.IDEAS
+        );
+
+        if (wasMigrated) {
+          console.log('[IdeasContext] Data migrated from localStorage');
+          localStorage.removeItem('trading-journal-ideas');
         }
-        setIdeas(parsed);
+
+        // Load all ideas from IndexedDB
+        console.log('[IdeasContext] Loading ideas from IndexedDB...');
+        const loadedIdeas = await getAllFromDB<TradeIdea>(STORE_NAMES.IDEAS);
+        console.log('[IdeasContext] Loaded', loadedIdeas?.length || 0, 'ideas');
+        setIdeas(loadedIdeas || []);
+        setError(null);
+        console.log('[IdeasContext] Initialization complete');
+      } catch (err) {
+        const message = err instanceof Error ? err.message : 'Failed to load ideas';
+        console.error('[IdeasContext] Initialization error:', message, err);
+        setError(message);
+      } finally {
+        setIsLoading(false);
       }
-    } catch (err) {
-      const message = err instanceof Error ? err.message : 'Failed to load ideas';
-      console.error('[v0] Ideas load error:', message);
-      setError(message);
-      localStorage.removeItem(STORAGE_KEY);
-    } finally {
-      setIsLoading(false);
-    }
+    };
+
+    initializeIdeas();
   }, []);
 
+  /**
+   * Effect: Persist ideas to IndexedDB whenever the ideas array changes
+   */
   useEffect(() => {
-    if (!isLoading) {
-      try {
-        localStorage.setItem(STORAGE_KEY, JSON.stringify(ideas));
-        setError(null);
-      } catch (err) {
-        const message = 'Failed to save ideas (storage might be full)';
-        console.error('[v0] Ideas storage error:', err);
-        setError(message);
-      }
+    if (!isLoading && ideas.length > 0) {
+      const persistToDB = async () => {
+        try {
+          for (const idea of ideas) {
+            await putToDB(STORE_NAMES.IDEAS, idea);
+          }
+          setError(null);
+        } catch (err) {
+          const message = err instanceof Error ? err.message : 'Failed to persist ideas';
+          console.error('[v0] Ideas persistence error:', err);
+          setError(message);
+        }
+      };
+
+      persistToDB();
     }
   }, [ideas, isLoading]);
 
@@ -62,8 +100,14 @@ export function IdeasProvider({ children }: { children: React.ReactNode }) {
       if (!idea.id || !idea.name) {
         throw new Error('Invalid idea: missing required fields');
       }
-      setIdeas(prev => [idea, ...prev]);
-      setError(null);
+      const updated = [idea, ...ideas];
+      setIdeas(updated);
+      
+      // Persist to IndexedDB immediately
+      putToDB(STORE_NAMES.IDEAS, idea).catch(err => {
+        console.error('[v0] Failed to save idea to IndexedDB:', err);
+        setError('Failed to save idea');
+      });
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Failed to add idea';
       setError(message);
@@ -73,8 +117,14 @@ export function IdeasProvider({ children }: { children: React.ReactNode }) {
   const deleteIdea = (id: string) => {
     try {
       if (!id) throw new Error('Idea ID is required');
-      setIdeas(prev => prev.filter(i => i.id !== id));
-      setError(null);
+      const updated = ideas.filter(i => i.id !== id);
+      setIdeas(updated);
+      
+      // Delete from IndexedDB immediately
+      deleteFromDB(STORE_NAMES.IDEAS, id).catch(err => {
+        console.error('[v0] Failed to delete idea from IndexedDB:', err);
+        setError('Failed to delete idea');
+      });
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Failed to delete idea';
       setError(message);
@@ -84,8 +134,14 @@ export function IdeasProvider({ children }: { children: React.ReactNode }) {
   const updateIdea = (id: string, updatedIdea: TradeIdea) => {
     try {
       if (!id) throw new Error('Idea ID is required');
-      setIdeas(prev => prev.map(i => (i.id === id ? updatedIdea : i)));
-      setError(null);
+      const updated = ideas.map(i => (i.id === id ? updatedIdea : i));
+      setIdeas(updated);
+      
+      // Update in IndexedDB immediately
+      putToDB(STORE_NAMES.IDEAS, updatedIdea).catch(err => {
+        console.error('[v0] Failed to update idea in IndexedDB:', err);
+        setError('Failed to update idea');
+      });
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Failed to update idea';
       setError(message);
@@ -190,12 +246,16 @@ export function IdeasProvider({ children }: { children: React.ReactNode }) {
       }
 
       // Merge with existing ideas, avoiding duplicates by id
-      setIdeas(prev => {
-        const existingIds = new Set(prev.map(i => i.id));
-        const newIdeas = parsed.filter((idea: TradeIdea) => !existingIds.has(idea.id));
-        return [...prev, ...newIdeas];
-      });
-
+      const existingIds = new Set(ideas.map(i => i.id));
+      const newIdeas = parsed.filter((idea: TradeIdea) => !existingIds.has(idea.id));
+      const updated = [...ideas, ...newIdeas];
+      setIdeas(updated);
+      
+      // Save all imported ideas to IndexedDB
+      for (const idea of newIdeas) {
+        await putToDB(STORE_NAMES.IDEAS, idea);
+      }
+      
       setError(null);
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Failed to import ideas';
@@ -205,10 +265,8 @@ export function IdeasProvider({ children }: { children: React.ReactNode }) {
     }
   };
 
-  const clearErrorFn = () => setError(null);
-
   return (
-    <IdeasContext.Provider value={{ ideas, addIdea, deleteIdea, updateIdea, exportJSON, exportCSV, importJSON, error, clearError: clearErrorFn }}>
+    <IdeasContext.Provider value={{ ideas, addIdea, deleteIdea, updateIdea, exportJSON, exportCSV, importJSON, error, clearError }}>
       {children}
     </IdeasContext.Provider>
   );

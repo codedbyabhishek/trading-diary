@@ -3,6 +3,15 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { Trade, Currency } from './types';
 import { getExchangeRateToBase, convertToBaseCurrency } from './trade-utils';
+import { 
+  getAllFromDB, 
+  putToDB, 
+  deleteFromDB, 
+  migrateFromLocalStorage,
+  getDBSize,
+  formatBytes,
+  STORE_NAMES 
+} from './db-service';
 
 /**
  * Context type for trade management
@@ -18,18 +27,20 @@ interface TradeContextType {
   importJSON: (file: File) => Promise<void>;
   error: string | null;
   clearError: () => void;
+  storagePercentage: number;
 }
 
 export const TradeContext = createContext<TradeContextType | undefined>(undefined);
 
 /**
  * TradeProvider - Main context provider for managing trading journal data
- * Handles localStorage persistence and provides trade management functions
+ * Handles IndexedDB persistence (500MB+ capacity) and provides trade management functions
  */
 export function TradeProvider({ children }: { children: React.ReactNode }) {
   const [trades, setTrades] = useState<Trade[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [storagePercentage, setStoragePercentage] = useState(0);
 
   /**
    * Migrate old trades to new format with currency support
@@ -64,47 +75,92 @@ export function TradeProvider({ children }: { children: React.ReactNode }) {
   };
 
   /**
-   * Effect: Initialize trades from localStorage on mount
-   * Prevents hydration mismatch by only updating after client-side load
-   * Also migrates old trades to new format with currency support
+   * Effect: Initialize trades from IndexedDB on mount
+   * Migrates from localStorage if this is the first load
    */
   useEffect(() => {
-    try {
-      const saved = localStorage.getItem('trading-journal-trades');
-      if (saved) {
-        const parsed = JSON.parse(saved);
-        if (!Array.isArray(parsed)) {
-          throw new Error('Invalid stored data format');
+    const initializeTrades = async () => {
+      try {
+        console.log('[TradeContext] Starting initialization...');
+        
+        // First, try to migrate from localStorage (one-time operation)
+        const wasMigrated = await migrateFromLocalStorage(
+          'trading-journal-trades',
+          STORE_NAMES.TRADES
+        );
+
+        if (wasMigrated) {
+          console.log('[TradeContext] Data migrated from localStorage');
+          // Clear old localStorage after successful migration
+          localStorage.removeItem('trading-journal-trades');
         }
-        // Migrate old trades to new format
-        const migratedTrades = parsed.map(migrateTrade);
-        setTrades(migratedTrades);
+
+        // Load all trades from IndexedDB
+        console.log('[TradeContext] Loading trades from IndexedDB...');
+        const loadedTrades = await getAllFromDB<Trade>(STORE_NAMES.TRADES);
+        console.log('[TradeContext] Loaded', loadedTrades?.length || 0, 'trades');
+        
+        if (loadedTrades && loadedTrades.length > 0) {
+          // Migrate old trades to new format
+          const migratedTrades = loadedTrades.map(migrateTrade);
+          
+          // Update IndexedDB with migrated versions
+          for (const trade of migratedTrades) {
+            await putToDB(STORE_NAMES.TRADES, trade);
+          }
+          
+          setTrades(migratedTrades);
+        }
+
+        // Get storage stats
+        const dbSize = await getDBSize();
+        if (dbSize.quota > 0) {
+          setStoragePercentage(dbSize.percentage);
+          console.log('[TradeContext] Storage usage:', formatBytes(dbSize.usage), '/', formatBytes(dbSize.quota));
+        }
+
+        console.log('[TradeContext] Initialization complete');
+        setError(null);
+      } catch (err) {
+        const message = err instanceof Error ? err.message : 'Failed to load trades';
+        console.error('[TradeContext] Initialization error:', message, err);
+        setError(message);
+      } finally {
+        setIsLoading(false);
       }
-    } catch (err) {
-      const message = err instanceof Error ? err.message : 'Failed to load trades';
-      console.error('[v0] localStorage error:', message);
-      setError(message);
-      // Reset storage on corruption
-      localStorage.removeItem('trading-journal-trades');
-    } finally {
-      setIsLoading(false);
-    }
+    };
+
+    initializeTrades();
   }, []);
 
   /**
-   * Effect: Persist trades to localStorage whenever the trades array changes
-   * Skipped during initial load to avoid redundant saves
+   * Effect: Persist trades to IndexedDB whenever the trades array changes
+   * Only saves after initial load is complete
    */
   useEffect(() => {
-    if (!isLoading) {
-      try {
-        localStorage.setItem('trading-journal-trades', JSON.stringify(trades));
-        setError(null);
-      } catch (err) {
-        const message = 'Failed to save trades (storage might be full)';
-        console.error('[v0] Storage error:', err);
-        setError(message);
-      }
+    if (!isLoading && trades.length > 0) {
+      const persistToDB = async () => {
+        try {
+          // Store all trades in IndexedDB
+          for (const trade of trades) {
+            await putToDB(STORE_NAMES.TRADES, trade);
+          }
+
+          // Update storage percentage
+          const dbSize = await getDBSize();
+          if (dbSize.quota > 0) {
+            setStoragePercentage(dbSize.percentage);
+          }
+
+          setError(null);
+        } catch (err) {
+          const message = err instanceof Error ? err.message : 'Failed to persist trades';
+          console.error('[v0] Persistence error:', err);
+          setError(message);
+        }
+      };
+
+      persistToDB();
     }
   }, [trades, isLoading]);
 
@@ -113,7 +169,15 @@ export function TradeProvider({ children }: { children: React.ReactNode }) {
       if (!trade.id || !trade.date || !trade.symbol) {
         throw new Error('Invalid trade data: missing required fields');
       }
-      setTrades(prev => [...prev, trade]);
+      const updated = [...trades, trade];
+      setTrades(updated);
+      
+      // Persist to IndexedDB immediately
+      putToDB(STORE_NAMES.TRADES, trade).catch(err => {
+        console.error('[v0] Failed to save trade to IndexedDB:', err);
+        setError('Failed to save trade');
+      });
+      
       setError(null);
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Failed to add trade';
@@ -125,7 +189,15 @@ export function TradeProvider({ children }: { children: React.ReactNode }) {
   const deleteTrade = (id: string) => {
     try {
       if (!id) throw new Error('Trade ID is required');
-      setTrades(prev => prev.filter(t => t.id !== id));
+      const updated = trades.filter(t => t.id !== id);
+      setTrades(updated);
+      
+      // Delete from IndexedDB immediately
+      deleteFromDB(STORE_NAMES.TRADES, id).catch(err => {
+        console.error('[v0] Failed to delete trade from IndexedDB:', err);
+        setError('Failed to delete trade');
+      });
+      
       setError(null);
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Failed to delete trade';
@@ -140,7 +212,15 @@ export function TradeProvider({ children }: { children: React.ReactNode }) {
       if (!updatedTrade.id || !updatedTrade.date || !updatedTrade.symbol) {
         throw new Error('Invalid trade data');
       }
-      setTrades(prev => prev.map(t => (t.id === id ? updatedTrade : t)));
+      const updated = trades.map(t => (t.id === id ? updatedTrade : t));
+      setTrades(updated);
+      
+      // Update in IndexedDB immediately
+      putToDB(STORE_NAMES.TRADES, updatedTrade).catch(err => {
+        console.error('[v0] Failed to update trade in IndexedDB:', err);
+        setError('Failed to update trade');
+      });
+      
       setError(null);
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Failed to update trade';
@@ -258,7 +338,14 @@ export function TradeProvider({ children }: { children: React.ReactNode }) {
 
       // Migrate imported trades to new format with currency support
       const migratedTrades = validTrades.map(migrateTrade);
-      setTrades(prev => [...prev, ...migratedTrades]);
+      const updated = [...trades, ...migratedTrades];
+      setTrades(updated);
+      
+      // Save all imported trades to IndexedDB
+      for (const trade of migratedTrades) {
+        await putToDB(STORE_NAMES.TRADES, trade);
+      }
+      
       setError(null);
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Unknown error during import';
@@ -271,7 +358,7 @@ export function TradeProvider({ children }: { children: React.ReactNode }) {
   const clearError = () => setError(null);
 
   return (
-    <TradeContext.Provider value={{ trades, addTrade, deleteTrade, updateTrade, exportJSON, exportCSV, importJSON, error, clearError }}>
+    <TradeContext.Provider value={{ trades, addTrade, deleteTrade, updateTrade, exportJSON, exportCSV, importJSON, error, clearError, storagePercentage }}>
       {children}
     </TradeContext.Provider>
   );
